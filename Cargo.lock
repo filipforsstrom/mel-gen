@@ -338,6 +338,7 @@ version = "0.1.0"
 dependencies = [
  "rand",
  "rodio",
+ "rosc",
 ]
 
 [[package]]
@@ -678,6 +679,16 @@ dependencies = [
  "hound",
  "lewton",
  "minimp3",
+]
+
+[[package]]
+name = "rosc"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10b751c26b740b6e8c37df88d2aa04dd4ea0f5a592ddd15ab21707ff925575dd"
+dependencies = [
+ "byteorder",
+ "nom",
 ]
 
 [[package]]

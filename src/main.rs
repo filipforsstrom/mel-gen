@@ -1,164 +1,100 @@
-use rand::{thread_rng, Rng};
-use std::{thread, time};
+pub mod audio_output;
+pub mod audio_bus;
+pub mod clock;
+pub mod connection;
+pub mod console_output;
+pub mod midi_converter;
+pub mod module;
+pub mod noise;
+pub mod osc_output;
+pub mod processor;
+pub mod sample_and_hold;
+pub mod midi_bus;
+use sample_and_hold::SampleAndHold;
 
-trait Processor {
-    fn process(&mut self);
-}
+use crate::audio_output::AudioOutput;
+use crate::audio_bus::AudioBus;
+use crate::clock::Clock;
+use crate::connection::Connection;
+use crate::console_output::ConsoleOutput;
+use crate::module::Module;
+use crate::noise::Noise;
+use crate::processor::Processor;
 
-trait Module: Processor {
-    fn input(&mut self) -> &Bus;
-    fn output(&mut self) -> &Bus;
-}
+const SAMPLE_RATE: f32 = 441000.0;
+const WAVETABLE_SIZE: usize = 128;
 
-struct AudioOutput {
-    input: Bus,
-    output: Bus,
-    output_left: String,
-    output_right: String,
-}
+// struct Patch<'a> {
+//     system: &'a mut System,
+//     connections: Vec<&'a mut Connection>,
+// }
 
-impl Processor for AudioOutput {
-    fn process(&mut self) {
-        self.output_left = self.input.value.to_string();
-        self.output_right = self.input.value.to_string();
-        println!(
-            "AudioOutput: Left={}, Right={}",
-            self.output_left, self.output_right
-        );
-    }
-}
+// impl<'a> Processor for Patch<'a> {
+//     fn process(&mut self) {
+//         self.system.process();
 
-impl Module for AudioOutput {
-    fn input(&mut self) -> &Bus {
-        &mut self.input
-    }
+//         for connection in &mut self.connections {
+//             connection.process();
+//         }
+//     }
+// }
 
-    fn output(&mut self) -> &Bus {
-        &mut self.output
-    }
-}
+// struct System {
+//     modules: Vec<Box<dyn Module>>,
+// }
 
-struct Noise {
-    input: Bus,
-    output: Bus,
-}
+// impl Processor for System {
+//     fn process(&mut self) {
+//         for module in &mut self.modules {
+//             module.process();
+//         }
+//     }
+// }
 
-impl Processor for Noise {
-    fn process(&mut self) {
-        self.output.value = Noise::generate_random_double();
-    }
-}
+// impl System {
+//     fn new(modules: Vec<Box<dyn Module>>) -> Self {
+//         Self { modules }
+//     }
 
-impl Module for Noise {
-    fn input(&mut self) -> &Bus {
-        &mut self.input
-    }
-
-    fn output(&mut self) -> &Bus {
-        &mut self.output
-    }
-}
-
-impl Noise {
-    fn generate_random_double() -> f64 {
-        let mut rng = thread_rng();
-        rng.gen_range(-1.0..1.0)
-    }
-}
-
-// #[derive(Copy, Clone)]
-struct Bus {
-    value: f64,
-}
-
-struct Connection {
-    input: Bus,
-    output: Bus,
-}
-
-impl Processor for Connection {
-    fn process(&mut self) {
-        self.output.value = self.input.value;
-    }
-}
-
-impl Connection {
-    fn new(input: Bus, output: Bus) -> Connection {
-        Connection { input, output }
-    }
-
-    fn set_input(&mut self, input: Bus) {
-        self.input = input;
-    }
-
-    fn set_output(&mut self, output: Bus) {
-        self.output = output;
-    }
-}
-
-struct Patch<'a> {
-    system: &'a mut System,
-    connections: Vec<&'a mut Connection>,
-}
-
-impl<'a> Processor for Patch<'a> {
-    fn process(&mut self) {
-        self.system.process();
-
-        for connection in &mut self.connections {
-            connection.process();
-        }
-    }
-}
-
-struct System {
-    modules: Vec<Box<dyn Module>>,
-}
-
-impl Processor for System {
-    fn process(&mut self) {
-        for module in &mut self.modules {
-            module.process();
-        }
-    }
-}
+//     fn add_module(&mut self, module: Box<dyn Module>) {
+//         self.modules.push(module);
+//     }
+// }
 
 fn main() {
-    let mut noise1 = Noise {
-        input: Bus { value: 0.0 },
-        output: Bus { value: 0.0 },
-    };
+    let mut noise = Noise::new();
+    let mut clock = Clock::new();
+    let mut s_h = SampleAndHold::new();
+    let mut audio_output = AudioOutput::new();
+    let mut console_output = ConsoleOutput::new();
+    let mut osc_output = osc_output::OscOutput::new().unwrap();
 
-    let mut audio_output1 = AudioOutput {
-        input: Bus { value: 0.0 },
-        output: Bus { value: 0.0 },
-        output_left: String::new(),
-        output_right: String::new(),
-    };
+    // let mut connection = Connection::new(noise1.output, audio_output1.input);
+    // let mut system = System::new(vec![Box::new(noise1), Box::new(audio_output1)]);
 
-    let mut connection = Connection::new(noise1.output, audio_output1.input);
+    // let mut connections = Vec::new();
+    // connections.push(&mut connection);
 
-    let mut modules: Vec<Box<dyn Module>> = Vec::new();
-    modules.push(Box::new(noise1));
-    modules.push(Box::new(audio_output1));
-
-    let mut system = System { modules };
-
-    let mut connections = Vec::new();
-    connections.push(&mut connection);
-
-    let mut patch = Patch {
-        system: &mut system,
-        connections: connections,
-    };
+    // let mut patch = Patch {
+    //     system: &mut system,
+    //     connections: connections,
+    // };
 
     loop {
-        patch.process();
-        thread::sleep(time::Duration::from_millis(1000)); // pause for 1000 milliseconds (1 second)
+        // patch.process();
+        // thread::sleep(time::Duration::from_millis(1000)); // pause for 1000 milliseconds (1 second)
 
         //funkar
-        // noise1.process();
-        // audio_output1.input.value = noise1.output.value;
-        // audio_output1.process();
+        osc_output.process();
+        noise.process();
+        clock.process();
+        clock.set_rate(10.0);
+        s_h.process();
+        s_h.trigger.value = clock.output.value;
+        s_h.input.value = noise.output.value;
+        osc_output.input.value = noise.output.value;
+        osc_output.trigger.value = clock.output.value;
+        console_output.input.value = s_h.output.value;
+        console_output.process();
     }
 }

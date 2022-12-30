@@ -1,19 +1,21 @@
 use crate::audio_bus::AudioBus;
 use crate::module::Module;
 use crate::processor::Processor;
-use rodio::{source::Source, OutputStream, OutputStreamHandle};
 
-pub struct AudioOutput {
+pub struct ConsoleOutput {
     pub input: AudioBus,
     pub output: AudioBus,
-    stream_handle: (OutputStream, OutputStreamHandle),
+    output_console: String,
 }
 
-impl Processor for AudioOutput {
-    fn process(&mut self) {}
+impl Processor for ConsoleOutput {
+    fn process(&mut self) {
+        self.output_console = self.input.value.to_string();
+        println!("Output: {}", self.output_console);
+    }
 }
 
-impl Module for AudioOutput {
+impl Module for ConsoleOutput {
     fn input(&mut self) -> &AudioBus {
         &mut self.input
     }
@@ -23,12 +25,12 @@ impl Module for AudioOutput {
     }
 }
 
-impl AudioOutput {
+impl ConsoleOutput {
     pub fn new() -> Self {
         Self {
             input: AudioBus::new(),
             output: AudioBus::new(),
-            stream_handle: OutputStream::try_default().unwrap(),
+            output_console: String::new(),
         }
     }
 }
