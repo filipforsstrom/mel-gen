@@ -1,9 +1,9 @@
-use crate::{audio_bus::AudioBus, module::Module, processor::Processor};
+use crate::{bus::Bus, module::AudioModule, processor::Processor};
 
 pub struct SampleAndHold {
-    pub input: AudioBus,
-    pub output: AudioBus,
-    pub trigger: AudioBus,
+    pub input: Bus<f32>,
+    pub output: Bus<f32>,
+    pub trigger: Bus<f32>,
 }
 
 impl Processor for SampleAndHold {
@@ -14,12 +14,12 @@ impl Processor for SampleAndHold {
     }
 }
 
-impl Module for SampleAndHold {
-    fn input(&mut self) -> &AudioBus {
+impl AudioModule for SampleAndHold {
+    fn audio_input(&mut self) -> &Bus<f32> {
         &mut self.input
     }
 
-    fn output(&mut self) -> &AudioBus {
+    fn audio_output(&mut self) -> &Bus<f32> {
         &mut self.output
     }
 }
@@ -27,9 +27,9 @@ impl Module for SampleAndHold {
 impl SampleAndHold {
     pub fn new() -> Self {
         Self {
-            input: AudioBus::new(),
-            output: AudioBus::new(),
-            trigger: AudioBus::new(),
+            input: Bus::<f32>::new(),
+            output: Bus::<f32>::new(),
+            trigger: Bus::<f32>::new(),
         }
     }
 }

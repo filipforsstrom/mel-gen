@@ -1,13 +1,13 @@
-use std::{error::Error, io::ErrorKind, net::UdpSocket};
+use std::net::UdpSocket;
 
 use rosc::{encoder, OscMessage, OscPacket, OscType};
 
-use crate::{audio_bus::AudioBus, module::Module, processor::Processor};
+use crate::{bus::Bus, module::MidiModule, processor::Processor};
 
 pub struct OscOutput {
-    pub input: AudioBus,
-    pub output: AudioBus,
-    pub trigger: AudioBus,
+    pub midi_input: Bus<u8>,
+    pub midi_output: Bus<u8>,
+    pub trigger: Bus<f32>,
     to_port: u16,
     socket: UdpSocket,
 }
@@ -15,19 +15,18 @@ pub struct OscOutput {
 impl Processor for OscOutput {
     fn process(&mut self) {
         if self.trigger.value > 0.0 {
-            self.output.value = self.input.value;
-            self.send_osc(((self.input.value + 1.0) * 127.0 / 2.0) as i32);
+            self.send_osc(self.midi_input.value as i32).unwrap();
         }
     }
 }
 
-impl Module for OscOutput {
-    fn input(&mut self) -> &AudioBus {
-        &mut self.input
+impl MidiModule for OscOutput {
+    fn midi_input(&mut self) -> &Bus<u8> {
+        &mut self.midi_input
     }
 
-    fn output(&mut self) -> &AudioBus {
-        &mut self.output
+    fn midi_output(&mut self) -> &Bus<u8> {
+        &mut self.midi_output
     }
 }
 
@@ -39,9 +38,9 @@ impl OscOutput {
         };
 
         Ok(Self {
-            input: AudioBus::new(),
-            output: AudioBus::new(),
-            trigger: AudioBus::new(),
+            midi_input: Bus::<u8>::new(),
+            midi_output: Bus::<u8>::new(),
+            trigger: Bus::<f32>::new(),
             to_port: 666,
             socket,
         })

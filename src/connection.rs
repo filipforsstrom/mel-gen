@@ -1,9 +1,9 @@
-use crate::audio_bus::AudioBus;
+use crate::bus::Bus;
 use crate::processor::Processor;
 
 pub struct Connection {
-    pub input: AudioBus,
-    pub output: AudioBus,
+    pub input: Bus<f32>,
+    pub output: Bus<f32>,
 }
 
 impl Processor for Connection {
@@ -13,15 +13,15 @@ impl Processor for Connection {
 }
 
 impl Connection {
-    // fn new(input: Bus, output: Bus) -> Connection {
-    //     Connection { input, output }
-    // }
+    fn new(input: Bus<f32>, output: Bus<f32>) -> Connection {
+        Connection { input, output }
+    }
 
-    // fn set_input(&mut self, input: Bus) {
-    //     self.input = input;
-    // }
+    fn set_input(&mut self, input: Bus<f32>) {
+        self.input = input;
+    }
 
-    // fn set_output(&mut self, output: Bus) {
-    //     self.output = output;
-    // }
+    fn set_output(&mut self, output: Bus<f32>) {
+        self.output = output;
+    }
 }

@@ -1,10 +1,10 @@
-use crate::audio_bus::AudioBus;
-use crate::module::Module;
+use crate::bus::Bus;
+use crate::module::AudioModule;
 use crate::processor::Processor;
 
 pub struct ConsoleOutput {
-    pub input: AudioBus,
-    pub output: AudioBus,
+    pub input: Bus<f32>,
+    pub output: Bus<f32>,
     output_console: String,
 }
 
@@ -15,12 +15,12 @@ impl Processor for ConsoleOutput {
     }
 }
 
-impl Module for ConsoleOutput {
-    fn input(&mut self) -> &AudioBus {
+impl AudioModule for ConsoleOutput {
+    fn audio_input(&mut self) -> &Bus<f32> {
         &mut self.input
     }
 
-    fn output(&mut self) -> &AudioBus {
+    fn audio_output(&mut self) -> &Bus<f32> {
         &mut self.output
     }
 }
@@ -28,8 +28,8 @@ impl Module for ConsoleOutput {
 impl ConsoleOutput {
     pub fn new() -> Self {
         Self {
-            input: AudioBus::new(),
-            output: AudioBus::new(),
+            input: Bus::<f32>::new(),
+            output: Bus::<f32>::new(),
             output_console: String::new(),
         }
     }
