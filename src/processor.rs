@@ -1,3 +1,3 @@
-pub(crate) trait Processor {
+pub trait Processor {
     fn process(&mut self);
 }
