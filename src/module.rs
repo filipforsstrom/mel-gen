@@ -1,12 +1,7 @@
 use crate::bus::Bus;
 use crate::processor::Processor;
 
-pub(crate) trait AudioModule: Processor {
-    fn audio_input(&mut self) -> &Bus<f32>;
-    fn audio_output(&mut self) -> &Bus<f32>;
-}
-
-pub(crate) trait MidiModule: Processor {
-    fn midi_input(&mut self) -> &Bus<u8>;
-    fn midi_output(&mut self) -> &Bus<u8>;
+pub(crate) trait Module<T>: Processor {
+    fn input(&mut self) -> &Bus<T>;
+    fn output(&mut self) -> &Bus<T>;
 }

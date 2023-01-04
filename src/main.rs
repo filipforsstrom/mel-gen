@@ -4,26 +4,30 @@ pub mod clock;
 pub mod connection;
 pub mod console_output;
 pub mod midi_converter;
+pub mod mixer;
 pub mod module;
 pub mod noise;
 pub mod osc_output;
 pub mod processor;
 pub mod quantizer;
 pub mod sample_and_hold;
-use std::time::{Duration, Instant};
+pub mod wavetable;
+pub mod wavetable_oscillator;
 
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use module::Module;
 use sample_and_hold::SampleAndHold;
+use wavetable::{Waveform, Wavetable};
+use wavetable_oscillator::WavetableOscillator;
 
 use crate::audio_output::AudioOutput;
-use crate::bus::Bus;
 use crate::clock::Clock;
 use crate::connection::Connection;
 use crate::console_output::ConsoleOutput;
-use crate::module::AudioModule;
 use crate::noise::Noise;
 use crate::processor::Processor;
 
-const SAMPLE_RATE: f32 = 441000.0;
+const SAMPLE_RATE: f32 = 48000.0;
 const WAVETABLE_SIZE: usize = 128;
 
 // struct Patch<'a> {
@@ -42,7 +46,7 @@ const WAVETABLE_SIZE: usize = 128;
 // }
 
 // struct System {
-//     modules: Vec<Box<dyn Module>>,
+//     modules: Vec<Box<dyn Module<f32>>>,
 // }
 
 // impl Processor for System {
@@ -64,18 +68,44 @@ const WAVETABLE_SIZE: usize = 128;
 // }
 
 fn main() {
-    let sample_period = Duration::from_micros(1_000_000 / crate::SAMPLE_RATE as u64);
+    let host = cpal::default_host();
 
-    let mut start = Instant::now();
+    let devices = host.devices().expect("failed to get devices");
 
-    let mut noise = Noise::new();
-    let mut clock = Clock::new();
-    let mut s_h = SampleAndHold::new();
-    let mut audio_output = AudioOutput::new();
-    let mut console_output = ConsoleOutput::new();
-    let mut osc_output = osc_output::OscOutput::new().unwrap();
-    let mut quantizer = quantizer::Quantizer::new();
-    let mut midi_converter = midi_converter::MidiConverter::new();
+    // move to a separate function
+    // println!("Audio devices:");
+    // for device in devices {
+    //     println!("{}", device.name().unwrap());
+    // }
+
+    let mut device = host
+        .default_output_device()
+        .expect("failed to find a default output device");
+
+    for d in devices {
+        if d.name().unwrap() == "BlackHole 2ch" {
+            device = d;
+        }
+    }
+
+    let config = device.default_output_config().unwrap();
+
+    match config.sample_format() {
+        cpal::SampleFormat::F32 => {
+            run::<f32>(&device, &config.into()).unwrap();
+        }
+
+        cpal::SampleFormat::I16 => {
+            run::<i16>(&device, &config.into()).unwrap();
+        }
+
+        cpal::SampleFormat::U16 => {
+            run::<u16>(&device, &config.into()).unwrap();
+        }
+    }
+
+    // let sample_period = Duration::from_micros(1_000_000 / crate::SAMPLE_RATE as u64);
+    // let mut start = Instant::now();
 
     // let mut connection = Connection::new(noise1.output, audio_output1.input);
     // let mut system = System::new(vec![Box::new(noise1), Box::new(audio_output1)]);
@@ -87,33 +117,78 @@ fn main() {
     //     system: &mut system,
     //     connections: connections,
     // };
+}
 
-    loop {
-        // patch.process();
+fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig) -> Result<(), anyhow::Error>
+where
+    T: cpal::Sample,
+{
+    // Get the sample rate and channels number from the config
+    let sample_rate = config.sample_rate.0 as f32;
+    let channels = config.channels as usize;
 
-        // console_output.process();
-        osc_output.process();
-        noise.process();
-        clock.process();
-        midi_converter.process();
-        quantizer.process();
-        s_h.process();
+    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-        clock.set_rate(15.0);
+    let wavetable = Wavetable::new(WAVETABLE_SIZE);
+    let mut osc1 = WavetableOscillator::new(wavetable.generate(Waveform::Sawtooth));
+    osc1.set_frequency(1.0);
+    osc1.set_amplitude(0.1);
+    let mut osc2 = WavetableOscillator::new(wavetable.generate(Waveform::Sine));
+    osc2.set_frequency(2.0);
+    osc2.set_amplitude(0.2);
 
-        s_h.trigger.value = clock.output.value;
-        s_h.input.value = noise.audio_output.value;
+    let mut noise = Noise::new();
+    let mut clock = Clock::new();
+    clock.set_rate(4.9);
 
-        midi_converter.audio_input.value = noise.audio_output.value;
-        quantizer.midi_input.value = midi_converter.midi_output.value;
-        osc_output.midi_input.value = quantizer.midi_output.value;
-        osc_output.trigger.value = clock.output.value;
-        // console_output.input.value = s_h.output.value;
+    let mut s_h = SampleAndHold::new();
+    let mut audio_output = AudioOutput::new();
+    let mut console_output = ConsoleOutput::new();
+    let mut osc_output = osc_output::OscOutput::new().unwrap();
+    let mut quantizer = quantizer::Quantizer::new();
+    let mut midi_converter = midi_converter::MidiConverter::new();
 
-        let elapsed = start.elapsed();
-        if elapsed < sample_period {
-            std::thread::sleep(sample_period - elapsed);
-        }
-        start = Instant::now();
-    }
+    // Build an output stream
+    let stream = device.build_output_stream(
+        config,
+        move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+            for frame in data.chunks_mut(channels) {
+                noise.process();
+                clock.process();
+                midi_converter.process();
+                quantizer.process();
+                osc_output.process();
+                osc1.process();
+                osc2.process();
+                // osc1.audio_input.value = osc2.audio_output.value;
+
+                // s_h.trigger.value = clock.output.value;
+                // s_h.input.value = noise.audio_output.value;
+
+                midi_converter.audio_input.value = osc1.audio_output.value;
+                quantizer.midi_input.value = midi_converter.midi_output.value;
+                osc_output.midi_input.value = quantizer.midi_output.value;
+                osc_output.trigger.value = quantizer.audio_output.value;
+
+                // console_output.process();
+                // console_output.input.value = oscillator.audio_output.value;
+
+                // Convert into a sample
+                let value: T = cpal::Sample::from::<f32>(&osc1.audio_output.value);
+
+                for sample in frame.iter_mut() {
+                    *sample = value;
+                }
+            }
+        },
+        err_fn,
+    )?;
+
+    // Play the stream
+    stream.play()?;
+
+    // Park the thread so our noise plays continuously until the app is closed
+    std::thread::park();
+
+    Ok(())
 }

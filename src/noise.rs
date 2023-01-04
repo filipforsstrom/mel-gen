@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::module::AudioModule;
+use crate::module::Module;
 use crate::processor::Processor;
 use rand::{thread_rng, Rng};
 
@@ -15,12 +15,12 @@ impl Processor for Noise {
     }
 }
 
-impl AudioModule for Noise {
-    fn audio_input(&mut self) -> &Bus<f32> {
+impl Module<f32> for Noise {
+    fn input(&mut self) -> &Bus<f32> {
         &mut self.audio_input
     }
 
-    fn audio_output(&mut self) -> &Bus<f32> {
+    fn output(&mut self) -> &Bus<f32> {
         &mut self.audio_output
     }
 }
@@ -30,7 +30,7 @@ impl Noise {
         Self {
             audio_input: Bus::<f32>::new(),
             audio_output: Bus::<f32>::new(),
-            amp: 0.1,
+            amp: 1.0,
         }
     }
     fn generate_random(&self) -> f32 {

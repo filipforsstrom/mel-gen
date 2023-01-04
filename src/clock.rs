@@ -1,4 +1,4 @@
-use crate::{bus::Bus, module::AudioModule, processor::Processor};
+use crate::{bus::Bus, module::Module, processor::Processor};
 
 pub struct Clock {
     pub input: Bus<f32>,
@@ -26,12 +26,12 @@ impl Processor for Clock {
     }
 }
 
-impl AudioModule for Clock {
-    fn audio_input(&mut self) -> &Bus<f32> {
+impl Module<f32> for Clock {
+    fn input(&mut self) -> &Bus<f32> {
         &mut self.input
     }
 
-    fn audio_output(&mut self) -> &Bus<f32> {
+    fn output(&mut self) -> &Bus<f32> {
         &mut self.output
     }
 }

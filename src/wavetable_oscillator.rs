@@ -1,9 +1,10 @@
 use crate::bus::Bus;
 use crate::module::Module;
+use crate::processor::Processor;
 
 pub struct WavetableOscillator {
-    input: Bus,
-    output: Bus,
+    pub audio_input: Bus<f32>,
+    pub audio_output: Bus<f32>,
     wavetable: Vec<f32>,
     phase: f32,
     frequency: f32,
@@ -11,32 +12,43 @@ pub struct WavetableOscillator {
     amplitude: f32,
 }
 
-impl  WavetableOscillator {
+impl Processor for WavetableOscillator {
+    fn process(&mut self) {
+        self.frequency += self.audio_input.value;
+        self.phase += self.frequency / self.sample_rate;
+        self.phase = self.phase % 1.0;
+
+        let table_index = (self.phase * self.wavetable.len() as f32) as usize;
+        self.audio_output.value = self.amplitude * self.wavetable[table_index]
+    }
+}
+
+impl Module<f32> for WavetableOscillator {
+    fn input(&mut self) -> &Bus<f32> {
+        &self.audio_input
+    }
+
+    fn output(&mut self) -> &Bus<f32> {
+        &self.audio_output
+    }
+}
+
+impl WavetableOscillator {
     pub fn new(wavetable: Vec<f32>) -> Self {
         Self {
-            input: todo!(),
-            output: todo!(),
+            audio_input: Bus::<f32>::new(),
+            audio_output: Bus::<f32>::new(),
             wavetable,
             phase: 0.0,
-            frequency: 100.0,
+            frequency: 200.0,
             sample_rate: crate::SAMPLE_RATE,
             amplitude: 1.0,
         }
     }
-
-    fn process(&mut self) {
-        // Increment the phase based on the frequency and sample rate
-        self.phase += self.frequency / self.sample_rate;
-        // Wrap the phase back to the beginning of the wavetable if it exceeds 1
-        self.phase -= self.phase.floor();
-
-        // Interpolate the value from the wavetable using the phase
-        let index1 = (self.phase * self.wavetable.len() as f32) as usize;
-        let index2 = (index1 + 1) % self.wavetable.len();
-        let frac = self.phase * self.wavetable.len() as f32 - index1 as f32;
-        let sample = self.wavetable[index1] * (1.0 - frac) + self.wavetable[index2] * frac;
-
-        // Scale the sample by the amplitude and convert it to an integer between 0 and 127
-        self.output.value = (self.amplitude * sample * 64.0) + 64.0;
+    pub fn set_frequency(&mut self, frequency: f32) {
+        self.frequency = frequency;
+    }
+    pub fn set_amplitude(&mut self, amplitude: f32) {
+        self.amplitude = amplitude;
     }
 }

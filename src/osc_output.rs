@@ -2,7 +2,7 @@ use std::net::UdpSocket;
 
 use rosc::{encoder, OscMessage, OscPacket, OscType};
 
-use crate::{bus::Bus, module::MidiModule, processor::Processor};
+use crate::{bus::Bus, module::Module, processor::Processor};
 
 pub struct OscOutput {
     pub midi_input: Bus<u8>,
@@ -20,12 +20,12 @@ impl Processor for OscOutput {
     }
 }
 
-impl MidiModule for OscOutput {
-    fn midi_input(&mut self) -> &Bus<u8> {
+impl Module<u8> for OscOutput {
+    fn input(&mut self) -> &Bus<u8> {
         &mut self.midi_input
     }
 
-    fn midi_output(&mut self) -> &Bus<u8> {
+    fn output(&mut self) -> &Bus<u8> {
         &mut self.midi_output
     }
 }

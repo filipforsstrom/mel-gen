@@ -1,8 +1,4 @@
-use crate::{
-    bus::Bus,
-    module::{AudioModule, MidiModule},
-    processor::Processor,
-};
+use crate::{bus::Bus, module::Module, processor::Processor};
 
 pub struct MidiConverter {
     pub audio_input: Bus<f32>,
@@ -17,22 +13,22 @@ impl Processor for MidiConverter {
     }
 }
 
-impl AudioModule for MidiConverter {
-    fn audio_input(&mut self) -> &Bus<f32> {
+impl Module<f32> for MidiConverter {
+    fn input(&mut self) -> &Bus<f32> {
         &mut self.audio_input
     }
 
-    fn audio_output(&mut self) -> &Bus<f32> {
+    fn output(&mut self) -> &Bus<f32> {
         &mut self.audio_output
     }
 }
 
-impl MidiModule for MidiConverter {
-    fn midi_input(&mut self) -> &Bus<u8> {
+impl Module<u8> for MidiConverter {
+    fn input(&mut self) -> &Bus<u8> {
         &mut self.midi_input
     }
 
-    fn midi_output(&mut self) -> &Bus<u8> {
+    fn output(&mut self) -> &Bus<u8> {
         &mut self.midi_output
     }
 }
