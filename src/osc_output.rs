@@ -5,18 +5,29 @@ use rosc::{encoder, OscMessage, OscPacket, OscType};
 use crate::{bus::Bus, module::Module, processor::Processor};
 
 pub struct OscOutput {
+    pub audio_input: Bus<f32>,
+    pub audio_output: Bus<f32>,
     pub midi_input: Bus<u8>,
     pub midi_output: Bus<u8>,
-    pub trigger: Bus<f32>,
     to_port: u16,
     socket: UdpSocket,
 }
 
 impl Processor for OscOutput {
     fn process(&mut self) {
-        if self.trigger.value > 0.0 {
+        if self.audio_input.value > 0.0 {
             self.send_osc(self.midi_input.value as i32).unwrap();
         }
+    }
+}
+
+impl Module<f32> for OscOutput {
+    fn input(&mut self) -> &Bus<f32> {
+        &mut self.audio_input
+    }
+
+    fn output(&mut self) -> &Bus<f32> {
+        &mut self.audio_output
     }
 }
 
@@ -38,9 +49,10 @@ impl OscOutput {
         };
 
         Ok(Self {
+            audio_input: Bus::<f32>::new(),
+            audio_output: Bus::<f32>::new(),
             midi_input: Bus::<u8>::new(),
             midi_output: Bus::<u8>::new(),
-            trigger: Bus::<f32>::new(),
             to_port: 666,
             socket,
         })

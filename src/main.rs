@@ -14,6 +14,7 @@ pub mod quantizer;
 pub mod sample_and_hold;
 pub mod scale;
 pub mod system;
+pub mod trigger;
 pub mod wavetable;
 pub mod wavetable_midi;
 pub mod wavetable_oscillator;
@@ -142,7 +143,7 @@ where
     osc2.set_frequency(0.1);
     osc2.set_amplitude(0.00001);
     let mut osc_midi = WavetableMidi::new(wavetable.generate_u8(Waveform::Sawtooth));
-    osc_midi.set_frequency(0.01);
+    osc_midi.set_frequency(0.1);
     osc_midi.set_phase_low(0.0);
     osc_midi.set_phase_high(1.0);
     osc_midi.set_phase_offset(0.0);
@@ -152,12 +153,7 @@ where
     let mut clock = Clock::new();
     clock.set_rate(12.0);
 
-    let mut s_h = SampleAndHold::new();
-    let mut audio_output = AudioOutput::new();
-    let mut console_output = ConsoleOutput::new();
     let mut osc_output = osc_output::OscOutput::new().unwrap();
-    let mut quantizer = quantizer::Quantizer::new();
-    let mut midi_converter = midi_converter::MidiConverter::new();
 
     // Build an output stream
     let stream = device.build_output_stream(
@@ -166,19 +162,13 @@ where
             for frame in data.chunks_mut(channels) {
                 noise.process();
                 clock.process();
-                midi_converter.process();
-                quantizer.process();
                 osc_output.process();
                 osc1.process();
                 osc2.process();
                 osc_midi.process();
 
-                quantizer.midi_input.value = osc_midi.midi_output.value;
-                osc_output.midi_input.value = quantizer.midi_output.value;
-                osc_output.trigger.value = quantizer.audio_output.value;
-
-                // console_output.process();
-                // console_output.input.value = oscillator.audio_output.value;
+                osc_output.midi_input.value = osc_midi.midi_output.value;
+                osc_output.audio_input.value = osc_midi.audio_output.value;
 
                 // Convert into a sample
                 let value: T = cpal::Sample::from::<f32>(&osc1.audio_output.value);

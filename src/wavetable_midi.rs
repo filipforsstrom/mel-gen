@@ -16,6 +16,7 @@ pub struct WavetableMidi {
     phase_high: f32,
     phase_offset: f32,
     scale: Vec<u8>,
+    previous_table_index: usize,
 }
 
 impl Processor for WavetableMidi {
@@ -60,6 +61,7 @@ impl WavetableMidi {
             phase_low: 0.0,
             phase_high: 1.0,
             scale: [0, 2, 3, 5, 7, 8, 10].to_vec(),
+            previous_table_index: 0,
         }
     }
     pub fn set_frequency(&mut self, frequency: f32) {
@@ -81,6 +83,7 @@ impl WavetableMidi {
         self.frequency += self.audio_input.value;
         self.phase += self.frequency / self.sample_rate;
         self.phase = self.phase % self.phase_range.1;
+
         if self.phase < self.phase_range.0 {
             self.phase = self.phase_range.0;
         } else if self.phase > self.phase_range.1 {
@@ -88,6 +91,14 @@ impl WavetableMidi {
         }
 
         let table_index = (self.phase * self.wavetable.len() as f32) as usize;
+
+        if table_index != self.previous_table_index {
+            self.audio_output.value = 1.0;
+        } else {
+            self.audio_output.value = -1.0;
+        }
+
+        self.previous_table_index = table_index;
         self.wavetable[table_index]
     }
     fn update_phase_range(&mut self) {
