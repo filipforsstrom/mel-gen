@@ -1,8 +1,8 @@
 use crate::{bus::Bus, module::Module, processor::Processor};
 
 pub struct Clock {
-    pub input: Bus<f32>,
-    pub output: Bus<f32>,
+    pub audio_input: Bus<f32>,
+    pub audio_output: Bus<f32>,
     rate: f32,
     samples_per_cycle: u64,
     sample_counter: u64,
@@ -19,28 +19,28 @@ impl Processor for Clock {
         }
 
         if self.sample_counter < self.trigger_length {
-            self.output.value = 1.0;
+            self.audio_output.value = 1.0;
         } else {
-            self.output.value = -1.0;
+            self.audio_output.value = -1.0;
         }
     }
 }
 
 impl Module<f32> for Clock {
     fn input(&mut self) -> &Bus<f32> {
-        &mut self.input
+        &mut self.audio_input
     }
 
     fn output(&mut self) -> &Bus<f32> {
-        &mut self.output
+        &mut self.audio_output
     }
 }
 
 impl Clock {
     pub fn new() -> Self {
         Self {
-            input: Bus::<f32>::new(),
-            output: Bus::<f32>::new(),
+            audio_input: Bus::<f32>::new(),
+            audio_output: Bus::<f32>::new(),
             rate: 10.0,
             samples_per_cycle: (crate::SAMPLE_RATE / 10.0) as u64,
             sample_counter: 0,

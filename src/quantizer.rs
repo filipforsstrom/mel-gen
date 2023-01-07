@@ -13,7 +13,8 @@ impl Processor for Quantizer {
     fn process(&mut self) {
         self.previous_note = self.midi_output.value;
 
-        let scale = [0, 2, 3, 5, 7, 8, 10];
+        // let scale = [0, 2, 3, 5, 7, 8, 10];
+        let scale = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         let octave = self.midi_input.value / 12;
         let within_octave = self.midi_input.value % 12;
 

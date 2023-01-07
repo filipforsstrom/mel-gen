@@ -7,17 +7,22 @@ pub mod midi_converter;
 pub mod mixer;
 pub mod module;
 pub mod noise;
+pub mod note_generator;
 pub mod osc_output;
 pub mod processor;
 pub mod quantizer;
 pub mod sample_and_hold;
+pub mod scale;
+pub mod system;
 pub mod wavetable;
+pub mod wavetable_midi;
 pub mod wavetable_oscillator;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use module::Module;
 use sample_and_hold::SampleAndHold;
 use wavetable::{Waveform, Wavetable};
+use wavetable_midi::WavetableMidi;
 use wavetable_oscillator::WavetableOscillator;
 
 use crate::audio_output::AudioOutput;
@@ -130,16 +135,22 @@ where
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
     let wavetable = Wavetable::new(WAVETABLE_SIZE);
-    let mut osc1 = WavetableOscillator::new(wavetable.generate(Waveform::Sawtooth));
+    let mut osc1 = WavetableOscillator::new(wavetable.generate_f32(Waveform::Sawtooth));
     osc1.set_frequency(1.0);
-    osc1.set_amplitude(0.1);
-    let mut osc2 = WavetableOscillator::new(wavetable.generate(Waveform::Sine));
-    osc2.set_frequency(2.0);
-    osc2.set_amplitude(0.2);
+    osc1.set_amplitude(0.01);
+    let mut osc2 = WavetableOscillator::new(wavetable.generate_f32(Waveform::Sine));
+    osc2.set_frequency(0.1);
+    osc2.set_amplitude(0.00001);
+    let mut osc_midi = WavetableMidi::new(wavetable.generate_u8(Waveform::Sawtooth));
+    osc_midi.set_frequency(0.01);
+    osc_midi.set_phase_low(0.0);
+    osc_midi.set_phase_high(1.0);
+    osc_midi.set_phase_offset(0.0);
+    osc_midi.quantize_wavetable_to_scale();
 
     let mut noise = Noise::new();
     let mut clock = Clock::new();
-    clock.set_rate(4.9);
+    clock.set_rate(12.0);
 
     let mut s_h = SampleAndHold::new();
     let mut audio_output = AudioOutput::new();
@@ -160,13 +171,9 @@ where
                 osc_output.process();
                 osc1.process();
                 osc2.process();
-                // osc1.audio_input.value = osc2.audio_output.value;
+                osc_midi.process();
 
-                // s_h.trigger.value = clock.output.value;
-                // s_h.input.value = noise.audio_output.value;
-
-                midi_converter.audio_input.value = osc1.audio_output.value;
-                quantizer.midi_input.value = midi_converter.midi_output.value;
+                quantizer.midi_input.value = osc_midi.midi_output.value;
                 osc_output.midi_input.value = quantizer.midi_output.value;
                 osc_output.trigger.value = quantizer.audio_output.value;
 
