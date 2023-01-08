@@ -1,12 +1,14 @@
 use crate::bus::Bus;
 use crate::module::Module;
 use crate::processor::Processor;
+use crate::wavetable::Waveform;
 
 pub struct WavetableMidi {
     pub audio_input: Bus<f32>,
     pub audio_output: Bus<f32>,
     pub midi_input: Bus<u8>,
     pub midi_output: Bus<u8>,
+    waveform: Waveform,
     wavetable: Vec<u8>,
     phase: f32,
     frequency: f32,
@@ -52,6 +54,7 @@ impl WavetableMidi {
             audio_output: Bus::<f32>::new(),
             midi_input: Bus::<u8>::new(),
             midi_output: Bus::<u8>::new(),
+            waveform: Waveform::Sine,
             wavetable,
             phase: 0.0,
             frequency: 200.0,
@@ -107,7 +110,7 @@ impl WavetableMidi {
             (self.phase_high + self.phase_offset).min(1.0).max(0.1),
         );
     }
-    pub fn quantize_wavetable_to_scale(&mut self) {
+    pub fn update_wavetable(&mut self) {
         let wavetable_to_change = self.wavetable.clone();
         let mut new_wavetable = Vec::new();
         for value in wavetable_to_change {

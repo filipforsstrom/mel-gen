@@ -142,12 +142,12 @@ where
     let mut osc2 = WavetableOscillator::new(wavetable.generate_f32(Waveform::Sine));
     osc2.set_frequency(0.1);
     osc2.set_amplitude(0.00001);
-    let mut osc_midi = WavetableMidi::new(wavetable.generate_u8(Waveform::Sawtooth));
+    let mut osc_midi = WavetableMidi::new(wavetable.generate_u8(Waveform::Square));
     osc_midi.set_frequency(0.1);
     osc_midi.set_phase_low(0.0);
     osc_midi.set_phase_high(1.0);
     osc_midi.set_phase_offset(0.0);
-    osc_midi.quantize_wavetable_to_scale();
+    osc_midi.update_wavetable();
 
     let mut noise = Noise::new();
     let mut clock = Clock::new();
